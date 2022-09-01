@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <script>
+      //定义一个请求函数
+      let request = (url) => {
+        return new Promise((resolve) => {
+          setTimeout(() => {
+            resolve("请求完成");
+          }, 1000);
+        }).then((res) => {
+          console.log(res);
+        });
+      };
+      //实现思路：1、使用async和await，一个pool用于计算请求个数，通过await promise.race阻塞更多的请求
+      //执行任务,传入一个promise数组，一个限制请求数量
+      async function fn(arr, limits) {
+        let pool = [];
+        for (let i = 0; i < arr.length; i++) {
+          let p = arr[i]; //获取一个请求
+          //处理完请求从pool中移除
+          p.then((res) => {
+            console.log("处理完毕");
+            pool.splice(pool.indexOf(p), 1);
+          });
+          //将请求添加进pool
+          pool.push(p);
+          //判断pool中是否已达到上限，如果已经达到3个请求，则需要等待三个最快的请求结果返回之后，再进行下一个p
+          if (pool.length === limits) {
+            await Promise.race(pool);
+          }
+        }
+      }
+
+      //递归调用，通过count闭包控制请求处理数量
+      function fn2(arr, limits) {
+        let count = 0;
+        for (let i = 0; i < limits; i++) {
+          function bao() {
+            count++;
+            //当请求没有发完并且同时发送的请求小于limits
+            if (arr.length > 0 && count <= limits) {
+                //从arr中取出一个请求，不断递归调用
+              arr.shift().then(() => {
+                //处理请求，一个请求处理完毕，count中减去1，说明空缺一个请求处理的位置，可以继续处理请求。
+                count--;
+              }).then(bao);
+            }
+          }
+        }
+      }
+    </script>
+  </body>
+</html>
